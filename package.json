@@ -1,0 +1,17 @@
+{
+  "name": "oculus-backup",
+  "version": "1.0.0",
+  "description": "Backup/Restore Oculus Files",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "fs-extra": "^7.0.1",
+    "lodash": "^4.17.11",
+    "optionator": "^0.8.2",
+    "rimraf": "^2.6.3"
+  }
+}
