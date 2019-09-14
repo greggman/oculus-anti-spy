@@ -7,7 +7,16 @@
         {
             "type": "node",
             "request": "launch",
-            "name": "Launch Program",
+            "name": "mode clean",
+            "program": "${workspaceFolder}\\index.js",
+            "args": [
+                "--mode=clean"
+            ]
+        },        
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "mode restore",
             "program": "${workspaceFolder}\\index.js",
             "args": [
                 "--mode=restore"
