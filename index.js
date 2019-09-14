@@ -188,6 +188,7 @@ async function clean(options, folders, extraFolders) {
   }
   const rmdirSync = makeActionFunc(options.test, 'rmdir', fs.rmdirSync.bind(fs));
   const unlinkSync = makeActionFunc(options.test, 'delete', fs.unlinkSync.bind(fs));
+  const removeSync = makeActionFunc(options.test, 'rm -rf', fs.removeSync.bind(fs));
 
   for (const folder of folders) {
     const {orig, back} = folder;
@@ -210,7 +211,7 @@ async function clean(options, folders, extraFolders) {
   for (const folder of extraFolders) {
     const stat = safeStat(folder);
     if (stat) {
-      rmdirSync(folder);
+      removeSync(folder);
     }
   }
 }
