@@ -7,18 +7,18 @@ Facebook records every app you run on your Oculus, no exceptions.
 So, my solution involves
 
 1. Stop the Oculus service
-2. Run this script with `node index.js --mode=save`
+2. Run this script with `node index.js --mode=save` (as Administrator)
 3. Prevent my PC from accessing the internet (turn off Wifi or Block at router)
 4. Start the Oculus service
 5. Run my software
 6. When done, stop the Oculus service
-7. Run this script with `node index.js --mode=restore`
-8. If step 7 seemed to work, run this script with `node index.js --mode=clean`
+7. Run this script with `node index.js --mode=restore` (as Administrator)
+8. If step 7 seemed to work, run this script with `node index.js --mode=clean` (as Administrator)
 9. Re-enable the internet
 
 ## Rant
 
-I pisses me off that some many companies spy on so much info. The USA had a law that
+I pisses me off that so many companies spy on so much info. The USA had a law that
 movie rental companies could not disclose which movies you rent. Of course Facebook
 isn't disclosing which apps you run (except of course to trusted 😒 3rd parties) 
 but the idea is the same to me. They shouldn't get to know that. It's my device, my PC, 
