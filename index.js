@@ -313,17 +313,18 @@ if (!fn) {
   process.exit(1);
 }
 
-fn(args, folders, extraBackFolders)
-  .then(() => {
-    console.log("==DONE==");
+async function main() {
+  try {
+    await fn(args, folders, extraBackFolders);
+    console.log(`== Finshed ${args.mode} ==`);
     process.exit(0);
-  })
-  .catch((e) => {
+  } catch(e) {
     console.error(e);
     // if (e.stack) {
     //   console.error(e.stack);
     // }
     process.exit(1);
-  });
+  }
+}
 
-
+main();
