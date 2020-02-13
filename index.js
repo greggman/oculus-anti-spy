@@ -46,6 +46,7 @@ const execFile = util.promisify(child_process.execFile);
 const optionSpec = {
   options: [
     { option: 'help', alias: 'h', type: 'Boolean', description: 'displays help' },
+    { option: 'service', alias: 's', type: 'String', description: 'which service to backup/restore', enum: ['oculus', 'steam'], default: 'oculus'},
     { option: 'mode', type: 'String',  required: true, description: 'save/restore/clean note: can not save if not clean', },
     { option: 'dir',  type: 'String', description: 'base folder to use', default: path.join(process.env.USERPROFILE)},
     { option: 'test', type: 'Boolean', description: 'just list actions, no effect' },
@@ -82,65 +83,74 @@ if (path.basename(appdata) !== 'AppData') {
   console.error('appdata path does not end in "AppData":', appdata);
 }
 
-args.dir = path.join(args.dir, 'OculusBack');
+function origBack(origBase, backBase, ...dirs) {
+  return {
+    orig: path.join(origBase, ...dirs),
+    back: path.join(backBase, ...dirs),
+  };
+}
 
-const folders = [
-  {
-    orig: path.join(appdata, 'Local', 'Oculus'),
-    back: path.join('AppData', 'Local', 'Oculus'),
-  },
-  {
-    orig: path.join(appdata, 'LocalLow', 'Oculus'),
-    back: path.join('AppData', 'LocalLow', 'Oculus'),
-  },
-  {
-    orig: path.join(appdata, 'Roaming', 'Oculus'),
-    back: path.join('AppData', 'Roaming', 'Oculus'),
-  },
-  {
-    orig: path.join(appdata, 'Roaming', 'OculusClient'),
-    back: path.join('AppData', 'Roaming', 'OculusClient'),
-  },
-  {
-    orig: path.join(process.env.ProgramFiles, 'Oculus', 'CoreData', 'Manifests'),
-    back: path.join('Program Files', 'Oculus', 'CoreData', 'Manifests'),
-    filter: (orig, back) => orig.toLowerCase().endsWith('.json'),
-  },
-  {
-    orig: path.join(process.env.ProgramFiles, 'Oculus', 'CoreData', '_global_data_store'),
-    back: path.join('Program Files', 'Oculus', 'CoreData', '_global_data_store'),
-    filter: (orig, back) => path.basename(orig).startsWith('data.sqlite'),
-  },
-  {
-    orig: path.join(process.env.ProgramFiles, 'Oculus', 'CoreData', 'Software', 'StoreAssets'),
-    back: path.join('Program Files', 'Oculus', 'CoreData', 'Software', 'StoreAssets'),
-  },
-];
-const extraBackFolders = [args.dir, ..._.uniq(folders.map((folder) => {
-  let {back} = folder;
-  const extra = [];
-  for(;;) {
-    const dirname = path.dirname(back);
-    if (dirname === back || dirname === '.') {
-      break;
-    }
-    extra.push(path.join(args.dir, dirname));
-    back = dirname;
-  }
-  return extra;
-}).flat()).sort()].reverse();
-folders.forEach((folder) => {
-  folder.back = path.join(args.dir, folder.back);
-});
+function oculus() {
+  const backupDir = args.dir = path.join(args.dir, 'OculusBack');
 
-async function save(options, folders) {
-  if (fs.existsSync(options.dir)) {
-    throw new Error(`can not save over existing save: ${options.dir}. Use --mode=clean`);
+  const folders = [
+    {
+      ...origBack(appdata, 'AppData', 'Local', 'Oculus'),
+    },
+    {
+      ...origBack(appdata, 'AppData', 'LocalLow', 'Oculus'),
+    },
+    {
+      ...origBack(appData, 'AppData', 'Roaming', 'Oculus'),
+    },
+    {
+      ...origBack(appdata, 'AppData', 'Roaming', 'OculusClient'),
+    },
+    {
+      ...origBack(process.env.ProgramFiles, 'Program Files', 'Oculus', 'CoreData', 'Manifests'),
+      filter: (orig, back) => orig.toLowerCase().endsWith('.json'),
+    },
+    {
+      ...origBack(process.env.ProgramFiles, 'Program Files', 'Oculus', 'CoreData', '_global_data_store'),
+      filter: (orig, back) => path.basename(orig).startsWith('data.sqlite'),
+    },
+    {
+      ...origBack(process.env.ProgramFiles, 'Program Files', 'Oculus', 'CoreData', 'Software', 'StoreAssets'),
+    },
+  ];
+  return {backupDir, folders};
+}
+
+function steam() {
+  const backupDir = args.dir = path.join(args.dir, 'SteamBack');
+
+  const folders = [
+    {
+      ...origBack(appdata, 'AppData', 'Local', 'Steam'),
+    },
+    {
+      ...origBack(appdata, 'AppData', 'Local', 'SteamVR'),
+    },
+    {
+      ...origBack(process.env['ProgramFiles(x86)'], 'Program Files  (x86)', 'Steam', 'Logs'),
+    },
+  ];
+  return {backupDir, folders};
+}
+
+const services = {
+  oculus,
+  steam,
+};
+
+async function save(backupDir, folders, options) {
+  if (fs.existsSync(backupDir)) {
+    throw new Error(`can not save over existing save: ${backupDir}. Use --mode=clean`);
   }
   const mkdirSync = makeActionFunc(options.test, 'mkdir', fs.mkdirpSync.bind(fs));
   const copyFileSync = makeActionFunc(options.test, 'copy', fs.copyFileSync.bind(fs));
 
-  mkdirSync(options.dir);
+  mkdirSync(backupDir);
 
   for (const folder of folders) {
     console.log('===[', folder.orig, ']===');
@@ -161,9 +171,9 @@ async function save(options, folders) {
   }
 }
 
-async function restore(options, folders) {
-  if (!fs.existsSync(options.dir)) {
-    throw new Error(`no save at: ${options.dir}.`);
+async function restore(backupDir, folders, options) {
+  if (!fs.existsSync(backupDir)) {
+    throw new Error(`no save at: ${backupDir}.`);
   }
 
   const mkdirSync = makeActionFunc(options.test, 'mkdir', fs.mkdirpSync.bind(fs));
@@ -215,9 +225,9 @@ function safeStat(filename) {
   }
 }
 
-async function clean(options, folders, extraFolders) {
-  if (!fs.existsSync(options.dir)) {
-    throw new Error(`no save at: ${options.dir}.`);
+async function clean(backupDir, folders, options, extraFolders) {
+  if (!fs.existsSync(backupDir)) {
+    throw new Error(`no save at: ${backupDir}.`);
   }
   const rmdirSync = makeActionFunc(options.test, 'rmdir', fs.rmdirSync.bind(fs));
   const unlinkSync = makeActionFunc(options.test, 'delete', fs.unlinkSync.bind(fs));
@@ -249,9 +259,9 @@ async function clean(options, folders, extraFolders) {
   }
 }
 
-async function diff(options, folders) {
-  if (!fs.existsSync(options.dir)) {
-    throw new Error(`no save at: ${options.dir}.`);
+async function diff(backupDir, folders, options) {
+  if (!fs.existsSync(backupDir)) {
+    throw new Error(`no save at: ${backupDir}.`);
   }
   for (const folder of folders) {
     const treeDiff = getTreeDiff(options, folder);
@@ -276,7 +286,7 @@ function makeActionFunc(test, desc, fn) {
   }
 }
 
-function getTreeDiff(options, folder) {
+function getTreeDiff(folder, options) {
   const {orig, back, filter} = folder;
   const origFiles = readDirTree.sync(orig).filter(filter || noop);
   const backFiles = readDirTree.sync(back).filter(filter || noop);
@@ -313,10 +323,30 @@ if (!fn) {
   process.exit(1);
 }
 
+const {backupDir, folders} = services[args.service]();
+// the children of the root folders of the back up and the root itself
+const extraBackFolders = [backupDir, ..._.uniq(folders.map((folder) => {
+  let {back} = folder;
+  const extra = [];
+  for(;;) {
+    const dirname = path.dirname(back);
+    if (dirname === back || dirname === '.') {
+      break;
+    }
+    extra.push(path.join(backupDir, dirname));
+    back = dirname;
+  }
+  return extra;
+}).flat()).sort()].reverse();
+// tack on the the backup dir to all backups
+folders.forEach((folder) => {
+  folder.back = path.join(backupDir, folder.back);
+});
+
 async function main() {
   try {
-    await fn(args, folders, extraBackFolders);
-    console.log(`== Finshed ${args.mode} ==`);
+    await fn(backupDir, folders, args, extraBackFolders);
+    console.log(`== Finished ${args.mode} ==`);
     process.exit(0);
   } catch(e) {
     console.error(e);
