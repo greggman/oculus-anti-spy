@@ -10,7 +10,7 @@ met:
       notice, this list of conditions and the following disclaimer.
 
     * Redistributions in binary form must reproduce the above
-      copyright notice, this list of conditions and the following
+      copyright notice, this list ppof conditions and the following
       disclaimer in the documentation and/or other materials provided
       with the distribution.
 
@@ -101,7 +101,7 @@ function oculus() {
       ...origBack(appdata, 'AppData', 'LocalLow', 'Oculus'),
     },
     {
-      ...origBack(appData, 'AppData', 'Roaming', 'Oculus'),
+      ...origBack(appdata, 'AppData', 'Roaming', 'Oculus'),
     },
     {
       ...origBack(appdata, 'AppData', 'Roaming', 'OculusClient'),
@@ -185,7 +185,7 @@ async function restore(backupDir, folders, options) {
   for (const folder of folders) {
     console.log('===[', folder.back, ']===');
     const {orig, back} = folder;
-    const treeDiff = getTreeDiff(options, folder);
+    const treeDiff = getTreeDiff(folder, options);
     const {origOnly, backOnly, notSame, inBoth} = treeDiff;
 
     const origOnlyDirs = [];
@@ -264,7 +264,7 @@ async function diff(backupDir, folders, options) {
     throw new Error(`no save at: ${backupDir}.`);
   }
   for (const folder of folders) {
-    const treeDiff = getTreeDiff(options, folder);
+    const treeDiff = getTreeDiff(folder, options);
     const {origOnly, backOnly, notSame} = treeDiff;
     console.log('====', folder.orig, 'vs', folder.back, '====')
     console.log(origOnly.map(v => `  orig<: ${v}`).join('\n'));
