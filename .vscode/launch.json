@@ -21,6 +21,14 @@
             "args": [
                 "--mode=restore"
             ]
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "test",
+            "program": "${workspaceFolder}\\test\\test.js",
+            "args": [
+            ]
         }
     ]
 }
