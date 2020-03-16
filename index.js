@@ -33,15 +33,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 'use strict';
 
-const fs = require('fs-extra');
 const path = require('path');
-const util = require('util');
-const child_process = require('child_process');
 const makeOptions = require('optionator');
-const _ = require('lodash');
-const readDirTree = require('./readdirtree.js');
-
-const execFile = util.promisify(child_process.execFile);
+const save = require('./save');
+const restore = require('./restore');
+const clean = require('./clean');
+const diff = require('./diff');
 
 const optionSpec = {
   options: [
@@ -142,173 +139,6 @@ const services = {
   oculus,
   steam,
 };
-
-async function save(backupDir, folders, options) {
-  if (fs.existsSync(backupDir)) {
-    throw new Error(`can not save over existing save: ${backupDir}. Use --mode=clean`);
-  }
-  const mkdirSync = makeActionFunc(options.test, 'mkdir', fs.mkdirpSync.bind(fs));
-  const copyFileSync = makeActionFunc(options.test, 'copy', fs.copyFileSync.bind(fs));
-
-  mkdirSync(backupDir);
-
-  for (const folder of folders) {
-    console.log('===[', folder.orig, ']===');
-    const {orig, back, filter} = folder;
-    const origFiles = readDirTree.sync(orig).filter(filter || noop);
-    for (const filename of origFiles) {
-      const origFilename = path.join(orig, filename);
-      const backFilename = path.join(back, filename);
-      const stat = fs.statSync(origFilename);
-      if (!stat.isDirectory()) {
-        const backDirname = path.dirname(backFilename);
-        if (!fs.existsSync(backDirname)) {
-          mkdirSync(backDirname);
-        }
-        copyFileSync(origFilename, backFilename);
-      }
-    }
-  }
-}
-
-async function restore(backupDir, folders, options) {
-  if (!fs.existsSync(backupDir)) {
-    throw new Error(`no save at: ${backupDir}.`);
-  }
-
-  const mkdirSync = makeActionFunc(options.test, 'mkdir', fs.mkdirpSync.bind(fs));
-  const copyFileSync = makeActionFunc(options.test, 'copy', fs.copyFileSync.bind(fs));
-  const rmdirSync = makeActionFunc(options.test, 'rmdir', fs.rmdirSync.bind(fs));
-  const unlinkSync = makeActionFunc(options.test, 'delete', fs.unlinkSync.bind(fs));
-  const removeSync = makeActionFunc(options.test, 'rm -rf', fs.removeSync.bind(fs));
-
-  for (const folder of folders) {
-    console.log('===[', folder.back, ']===');
-    const {orig, back} = folder;
-    const treeDiff = getTreeDiff(folder, options);
-    const {origOnly, backOnly, notSame, inBoth} = treeDiff;
-
-    const origOnlyDirs = [];
-    origOnly.forEach((filename) => {
-      const origFilename = path.join(orig, filename);
-      const stat = fs.statSync(origFilename);
-      if (stat.isDirectory()) {
-        origOnlyDirs.push(origFilename);
-      } else {
-        unlinkSync(origFilename);
-      }
-    });
-
-    origOnlyDirs.forEach(v => removeSync(v));
-
-    [...backOnly, ...notSame].forEach((filename) => {
-      const origFilename = path.join(orig, filename);
-      const backFilename = path.join(back, filename);
-      const stat = fs.statSync(backFilename);
-      if (!stat.isDirectory()) {
-        const origDirname = path.dirname(origFilename);
-        if (!fs.existsSync(origDirname)) {
-          mkdirSync(origDirname);
-        }
-        copyFileSync(backFilename, origFilename);
-      }
-    });
-  }
-}
-
-function safeStat(filename) {
-  try {
-    const stat = fs.statSync(filename);
-    return stat;
-  } catch (e) {
-    return;
-  }
-}
-
-async function clean(backupDir, folders, options, extraFolders) {
-  if (!fs.existsSync(backupDir)) {
-    throw new Error(`no save at: ${backupDir}.`);
-  }
-  const rmdirSync = makeActionFunc(options.test, 'rmdir', fs.rmdirSync.bind(fs));
-  const unlinkSync = makeActionFunc(options.test, 'delete', fs.unlinkSync.bind(fs));
-  const removeSync = makeActionFunc(options.test, 'rm -rf', fs.removeSync.bind(fs));
-
-  for (const folder of folders) {
-    const {orig, back} = folder;
-    const stat = safeStat(back);
-    if (!stat) {
-      continue;
-    }
-    const backFiles = readDirTree.sync(back).sort().reverse();
-    for (const filename of backFiles) {
-      const backFilename = path.join(back, filename);
-      const stat = fs.statSync(backFilename);
-      if (stat.isDirectory()) {
-        rmdirSync(backFilename);
-      } else {
-        unlinkSync(backFilename);
-      }
-    }
-  }
-
-  for (const folder of extraFolders) {
-    const stat = safeStat(folder);
-    if (stat) {
-      removeSync(folder);
-    }
-  }
-}
-
-async function diff(backupDir, folders, options) {
-  if (!fs.existsSync(backupDir)) {
-    throw new Error(`no save at: ${backupDir}.`);
-  }
-  for (const folder of folders) {
-    const treeDiff = getTreeDiff(folder, options);
-    const {origOnly, backOnly, notSame} = treeDiff;
-    console.log('====', folder.orig, 'vs', folder.back, '====')
-    console.log(origOnly.map(v => `  orig<: ${v}`).join('\n'));
-    console.log(backOnly.map(v => `  back>: ${v}`).join('\n'));
-    console.log(notSame.map(v =>  `  !=== : ${v}`).join('\n'));
-  }
-}
-
-function makeActionFunc(test, desc, fn) {
-  if (test) {
-    return function(...args) {
-      console.log('would', desc, ...args);
-    };
-  }
-
-  return function(...args) {
-    console.log(desc, ...args);
-    fn(...args);
-  }
-}
-
-function getTreeDiff(folder, options) {
-  const {orig, back, filter} = folder;
-  const origFiles = readDirTree.sync(orig).filter(filter || noop);
-  const backFiles = readDirTree.sync(back).filter(filter || noop);
-  const origOnly = _.difference(origFiles, backFiles);
-  const backOnly = _.difference(backFiles, origFiles);
-  const inBoth = _.intersection(origFiles, backFiles);
-  const notSame = inBoth.filter((filename) => {
-    const origStat = fs.statSync(path.join(orig, filename));
-    const backStat = fs.statSync(path.join(back, filename));
-    return origStat.mtime !== backStat.mtime || origStat.size !== backStat.size;
-  });
-  return {
-    origOnly,
-    backOnly,
-    inBoth,
-    notSame,
-  };
-}
-
-function noop() {
-  return true;
-}
 
 const modes = {
   save,
