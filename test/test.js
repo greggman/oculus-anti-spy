@@ -77,29 +77,6 @@ function makeTree(dir, newChildren) {
   }
 }
 
-const expectedSave = [
-  "back",
-  "back\\bar.txt",
-  "back\\foo.txt",
-  "back\\subDir",
-  "back\\subDir\\abc.json",
-  "back\\subDir\\def.xml",
-  "back\\subDir\\subSubDir",
-  "back\\subDir\\subSubDir\\abc.json",
-  "back\\subDir\\subSubDir\\def.xml"
-];
-
-const expectedRestore = [
-  "bar.txt",
-  "foo.txt",
-  "subDir",
-  "subDir\\abc.json",
-  "subDir\\def.xml",
-  "subDir\\subSubDir",
-  "subDir\\subSubDir\\abc.json",
-  "subDir\\subSubDir\\def.xml"
-];
-
 const assert = {
   deepEqual(actual, expected) {
     if (actual === expected) {
@@ -119,6 +96,16 @@ const assert = {
           throw new Error(`arrays do not match at element ${i}`);
         }
       }
+    } else if (typeof actual === 'object') {
+      if (typeof expected !== 'object') {
+        throw new Error(`actual is object, expected is not`);
+      }
+      const actualKeys = Object.keys(actual).sort();
+      const expectedKeys = Object.keys(expected).sort();
+      assert.deepEqual(actualKeys, expectedKeys);
+      for (const key in actualKeys) {
+        assert.deepEqual(actual[key], expected[key]);
+      }
     } else {
       throw new Error('unhandled');
     }
@@ -130,7 +117,27 @@ const assert = {
   }
 }
 
-describe('full', () => {
+function recursiveListing(root) {
+  const filenames = readDirTree.sync(root);
+  const listing = filenames.map(filename => {
+    const stat = fs.statSync(path.join(root, filename));
+    return {
+      filename,
+      size: stat.size,
+      mtime: stat.mtimeMs,
+    };
+  });
+  return listing;
+}
+
+function compareListings(aPath, bPath) {
+  const aListing = recursiveListing(aPath);
+  const bListing = recursiveListing(bPath);
+  assert.deepEqual(aListing, bListing);
+}
+
+describe('force', () => {
+  const options = {force: true};
 
   beforeEach(async () => {
     fs.removeSync(testSrcDir);
@@ -145,9 +152,10 @@ describe('full', () => {
     makeTree(testSrcDir, origFiles);
     const orig = testSrcDir;
     const back = path.join(testDstDir, 'back');
-    await save(testDstDir, [{orig, back}], {});
-    const actual = readDirTree.sync(testDstDir);
-    assert.deepEqual(actual, expectedSave);
+    await save(testDstDir, [{orig, back}], options);
+    const actual = recursiveListing(back);
+    const expected = recursiveListing(testSrcDir);
+    assert.deepEqual(actual, expected);
   });
 
   it('restores', async() => {
@@ -155,19 +163,105 @@ describe('full', () => {
     makeTree(testDstDir, backupFiles);
     const orig = testSrcDir;
     const back = path.join(testDstDir, 'back');
-    await restore(testDstDir, [{orig, back}], {});
-    const actual = readDirTree.sync(testSrcDir);
-    assert.deepEqual(actual, expectedRestore);
+    await restore(testDstDir, [{orig, back}], options);
+    const actual = recursiveListing(testSrcDir);
+    const expected = recursiveListing(back);
+    assert.deepEqual(actual, expected);
   });
 
   it('cleans',  async() => {
     makeTree(testDstDir, backupFiles);
     const orig = testSrcDir;
     const back = path.join(testDstDir, 'back');
-    await clean(testDstDir, [{orig, back}], {}, []);
+    await clean(testDstDir, [{orig, back}], options, []);
     const stat = safeStat(testSrcDir);
     assert.strictEqual(stat, undefined);
   });
 });
+
+describe('incremental', () => {
+  const options = {force: false};
+
+  beforeEach(async () => {
+    fs.removeSync(testSrcDir);
+    fs.removeSync(testDstDir);
+  });
+
+  afterEach(async () => {
+    fs.removeSync(testSrcDir);
+  });
+
+  it('saves', async() => {
+    makeTree(testSrcDir, origFiles);
+    const orig = testSrcDir;
+    const back = path.join(testDstDir, 'back');
+    await save(testDstDir, [{orig, back}], options);
+
+    // check if we add modify a file it gets copied
+    makeTree(testSrcDir, [
+      { name: 'foo.txt', content: '1234568', },
+      { 
+        name: 'subDir',
+        children: [
+          { name: 'abc.json', content: '{"abc":"defs"}'},
+          {
+            name: 'subSubDir',
+            children: [
+              { name: 'def.xml', content: '<"abc">xyz</abc>'},
+            ],
+          },
+        ],
+      },
+    ]);
+    await save(testDstDir, [{orig, back}], options);
+    compareListings(testSrcDir, back);
+
+    // check if we add a file it gets copied
+    makeTree(testSrcDir, [
+      { name: 'foo2.txt', content: '1234568a', },
+      { 
+        name: 'subDir',
+        children: [
+          {
+            name: 'subSubDir',
+            children: [
+              { name: 'ghi.xml', content: '<"str">---</str>'},
+            ],
+          },
+        ],
+      },
+    ]);
+    await save(testDstDir, [{orig, back}], options);
+    compareListings(testSrcDir, back);
+
+    // check if we add a folder it gets copied
+    makeTree(testSrcDir, [
+      { 
+        name: 'subDir',
+        children: [
+          {
+            name: 'newSubDir',
+            children: [
+              { name: 'stuff.xml', content: '<"str">foo</str>'},
+            ],
+          },
+        ],
+      },
+    ]);
+    await save(testDstDir, [{orig, back}], options);
+    compareListings(testSrcDir, back);
+
+    // check if we remove a file it gets removed
+    fs.unlinkSync(path.join(testSrcDir, 'subDir', 'newSubDir'));
+    await save(testDstDir, [{orig, back}], options);
+    compareListings(testSrcDir, back); 
+
+    // check if we remove folder it gets removed
+    fs.removeSync(path.join(testSrcDir, 'subDir', 'abc.json'));
+    await save(testDstDir, [{orig, back}], options);
+    compareListings(testSrcDir, back); 
+  });
+});
+
 
 run();

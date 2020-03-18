@@ -46,6 +46,7 @@ const optionSpec = {
     { option: 'service', alias: 's', type: 'String', description: 'which service to backup/restore', enum: ['oculus', 'steam'], default: 'oculus'},
     { option: 'mode', type: 'String',  required: true, description: 'save/restore/clean note: can not save if not clean', },
     { option: 'dir',  type: 'String', description: 'base folder to use', default: path.join(process.env.USERPROFILE)},
+    { option: 'force', type: 'Boolean', description: 'force copies. By default only files with different dates/sizes are copied', default: 'false'},
     { option: 'test', type: 'Boolean', description: 'just list actions, no effect' },
   ],
   helpStyle: {

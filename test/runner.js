@@ -15,6 +15,10 @@ class Reporter {
     ++this.numTests;
     ++this.numErrors;
     this.log('FAIL:', ...args);
+    const [, e] = [...args];
+    if (e instanceof Error && e.stack) {
+      this.log(e.stack);
+    }
   }
   finish() {
     console.log('================');
