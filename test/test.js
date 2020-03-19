@@ -286,7 +286,8 @@ describe('runs from command-line', () => {
       '--service=test',
       `--dir=${dstPath}`,
     ]);
-    const dstDataPath = path.join(dstPath, 'TestBack', 'test', 'test', 'srcData');
+    const backPath = path.join(dstPath, 'TestBack');
+    const dstDataPath = path.join(backPath, 'test', 'test', 'srcData');
     compareListings(srcPath, dstDataPath); 
 
     await exec('node.exe', [
@@ -303,7 +304,8 @@ describe('runs from command-line', () => {
       `--dir=${dstPath}`,
     ]);
 
-
+    const stat = safeStat(backPath);
+    assert.strictEqual(stat, undefined);
   });
 });
 
