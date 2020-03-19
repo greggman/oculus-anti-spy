@@ -1,0 +1,83 @@
+{
+    "env": {
+        "browser": true,
+        "commonjs": true,
+        "es6": true,
+        "node": true,
+        "mocha": true
+    },
+    "parser": "babel-eslint",
+    "parserOptions": {
+        "ecmaFeatures": {
+            "jsx": true
+        },
+        "sourceType": "module"
+    },
+    "plugins": [
+        "optional-comma-spacing"
+    ],
+    "extends": "airbnb",
+    "rules": {
+        "camelcase": "off",   // want to be able to use g_xxx and s_xxx
+        "max-len": "off",
+        "prefer-destructuring": "off",
+        "no-use-before-define": ["error", { "functions": false }],
+        "no-plusplus": 0,               // WAT?
+        "key-spacing": ["error", { "beforeColon": false, "afterColon": true, "mode": "minimum" }],
+        "no-nested-ternary": 0,
+        "no-unneeded-ternary": "off",     // seriously FUCK YOU!
+        "no-multi-spaces": "off",         // ["error", { "ignoreEOLComments": true }],
+        "no-underscore-dangle": "off",    // used for private members
+        "react/no-multi-comp": "off",     // being fucking pendantic about intimately related class is stoopid
+        "no-bitwise": ["error", { "int32Hint": true }],
+        "no-mixed-operators": "off",      // What the fuck?
+        "no-restricted-syntax": "off",    // serious FUCK OFF! ugh!
+        "no-await-in-loop": "off",        // FUCK YOU MORE!
+        "no-unused-vars": ["error"],
+        "no-undef": ["error"],
+        "jsx-a11y/no-static-element-interactions": "off", // NOPE!
+        "jsx-a11y/alt-text": "off",
+        "jsx-a11y/media-has-caption": "off",
+        "jsx-a11y/click-events-have-key-events": "off",
+        "jsx-a11y/label-has-for": "off",
+        "react/self-closing-comp": "off",
+        "react/jsx-boolean-value": "off", // ["error", "always"],
+        "object-curly-spacing": "off",    // ["error", "never"],
+        "object-curly-newline": "off",
+        "comma-dangle": "off",
+        "optional-comma-spacing/optional-comma-spacing": ["error", {"after": true}],
+        "array-bracket-spacing": "off",
+        "space-in-parens": "off",
+        "arrow-body-style": ["error", "always"],
+        "no-else-return": "off",
+        "object-shorthand": "off",
+        "class-methods-use-this": "off",
+        "no-param-reassign": "off",
+        "no-lonely-if": "off",
+        "quote-props": "off",
+        "no-shadow": "off",               // not entirely convinced this is important when not using `var`
+        "no-lone-blocks": "off",          // I like to organize my code!
+        "no-floating-decimal": "off",     // Fuck you
+
+        "no-console": "off",              // Maybe turn this on
+        "react/prop-types": "off",        // TURN THIS ON
+        "lines-between-class-members": "off",  // FUCK YOU!
+        "operator-linebreak": "off",           // FUCK YOU!
+        "max-classes-per-file": "off",         // FUCK YOU! FUCKING FUCK!
+        "no-multiple-empty-lines": "off",      // Triple fuck you! Fucking waste of dev time to deal with this assholes!
+        "import/no-useless-path-segments": "off", // BUGGY! Gives bad results
+        "react/destructuring-assignment": "off",  // More fUck you! It's actually *LESS READABLE* dickheads!
+        "react/jsx-one-expression-per-line": "off",  // FUCKING STUPID! How about one-operator-per-line as an example. Gees!
+        "jsx-a11y/control-has-associated-label": "off",
+    },
+    "overrides": [
+        {
+            "files": [
+                "*.test.js"
+            ],
+            "rules": {
+                "import/no-extraneous-dependencies": "off"
+            }
+        }
+    ]
+}

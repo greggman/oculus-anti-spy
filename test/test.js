@@ -1,8 +1,7 @@
 const path = require('path');
 const fs = require('fs-extra');
 const tmp = require('tmp');
-
-const {describe, it, run, before, after, beforeEach, afterEach} = require('./runner.js');
+const assert = require('chai').assert;
 
 const save = require('../src/save');
 const restore = require('../src/restore');
@@ -10,7 +9,7 @@ const clean = require('../src/clean');
 const diff = require('../src/diff');
 
 const readDirTree = require('../src/readdirtree');
-const {safeStat, exec} = require('../src/utils');
+const {safeStat} = require('../src/utils');
 
 const testSrcDir = tmp.dirSync().name;
 const testDstDir = tmp.dirSync().name;
@@ -78,46 +77,6 @@ function makeTree(dir, newChildren) {
   }
 }
 
-const assert = {
-  deepEqual(actual, expected) {
-    if (actual === expected) {
-      return;
-    }
-    if (Array.isArray(actual)) {
-      if (!Array.isArray(expected)) {
-        throw new Error('b is not array');
-      }
-      if (actual.length !== expected.length) {
-        throw new Error('arrays not same length');
-      }
-      for (let i = 0; i < actual.length; ++i) {
-        try {
-          assert.deepEqual(actual[i], expected[i]);
-        } catch(e) {
-          throw new Error(`arrays do not match at element ${i}`);
-        }
-      }
-    } else if (typeof actual === 'object') {
-      if (typeof expected !== 'object') {
-        throw new Error(`actual is object, expected is not`);
-      }
-      const actualKeys = Object.keys(actual).sort();
-      const expectedKeys = Object.keys(expected).sort();
-      assert.deepEqual(actualKeys, expectedKeys);
-      for (const key in actualKeys) {
-        assert.deepEqual(actual[key], expected[key]);
-      }
-    } else {
-      throw new Error('unhandled');
-    }
-  },
-  strictEqual(actual, expected) {
-    if (actual !== expected) {
-      throw new Error(`expected ${expected}, was ${actual}`);
-    }
-  }
-}
-
 function recursiveListing(root) {
   const filenames = readDirTree.sync(root);
   const listing = filenames.map(filename => {
@@ -125,7 +84,7 @@ function recursiveListing(root) {
     return {
       filename,
       size: stat.size,
-      mtime: stat.mtimeMs,
+      mtime: stat.isDirectory() ? 0 : stat.mtimeMs,
     };
   });
   return listing;
@@ -311,5 +270,3 @@ describe('runs from command-line', () => {
   });
 });
 */
-
-run();
