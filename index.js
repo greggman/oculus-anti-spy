@@ -10,7 +10,7 @@ met:
       notice, this list of conditions and the following disclaimer.
 
     * Redistributions in binary form must reproduce the above
-      copyright notice, this list ppof conditions and the following
+      copyright notice, this list of conditions and the following
       disclaimer in the documentation and/or other materials provided
       with the distribution.
 
@@ -35,15 +35,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 const path = require('path');
 const makeOptions = require('optionator');
-const save = require('./save');
-const restore = require('./restore');
-const clean = require('./clean');
-const diff = require('./diff');
+const _ = require('lodash');
+const save = require('./src/save.js');
+const restore = require('./src/restore.js');
+const clean = require('./src/clean.js');
+const diff = require('./src/diff.js');
 
 const optionSpec = {
   options: [
     { option: 'help', alias: 'h', type: 'Boolean', description: 'displays help' },
-    { option: 'service', alias: 's', type: 'String', description: 'which service to backup/restore', enum: ['oculus', 'steam'], default: 'oculus'},
+    { option: 'service', alias: 's', type: 'String', description: 'which service to backup/restore', enum: ['oculus', 'steam', 'test'], default: 'oculus'},
     { option: 'mode', type: 'String',  required: true, description: 'save/restore/clean note: can not save if not clean', },
     { option: 'dir',  type: 'String', description: 'base folder to use', default: path.join(process.env.USERPROFILE)},
     { option: 'force', type: 'Boolean', description: 'force copies. By default only files with different dates/sizes are copied', default: 'false'},
@@ -136,9 +137,21 @@ function steam() {
   return {backupDir, folders};
 }
 
+function test() {
+  const backupDir = args.dir = path.join(args.dir, 'TestBack');
+
+  const folders = [
+    {
+      ...origBack(__dirname, 'test', 'test', 'srcData'),
+    },
+  ];
+  return {backupDir, folders};
+}
+
 const services = {
   oculus,
   steam,
+  test,
 };
 
 const modes = {

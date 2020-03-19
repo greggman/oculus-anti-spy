@@ -2,6 +2,19 @@ const fs = require('fs-extra');
 const path = require('path');
 const _ = require('lodash');
 const readDirTree = require('./readdirtree');
+const child_process = require('child_process');
+
+function exec(file, args) {
+  return new Promise((resolve, reject) => {
+    child_process.execFile(file, args, (err, stdout, stderr) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve({stdout, stderr});
+      }
+    });
+  });
+}
 
 function noop() {
   return true;
@@ -50,6 +63,7 @@ function safeStat(filename) {
 }
 
 module.exports = {
+  exec,
   makeActionFunc,
   getTreeDiff,
   safeStat,

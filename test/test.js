@@ -9,7 +9,7 @@ const clean = require('../src/clean');
 const diff = require('../src/diff');
 
 const readDirTree = require('../src/readdirtree');
-const {safeStat} = require('../src/utils');
+const {safeStat, exec} = require('../src/utils');
 
 const testSrcDir = path.join(__dirname, 'src');
 const testDstDir = path.join(__dirname, 'dst');
@@ -179,6 +179,7 @@ describe('force', () => {
   });
 });
 
+/*
 describe('incremental', () => {
   const options = {force: false};
 
@@ -262,6 +263,48 @@ describe('incremental', () => {
     compareListings(testSrcDir, back); 
   });
 });
+*/
 
+describe('runs from command-line', () => {
+
+  const script = path.join(__dirname, '..', 'index.js');
+  const srcPath = path.join(__dirname, 'srcData');
+  const dstPath = path.join(__dirname);
+
+  before(async() => {
+    fs.removeSync(dstPath);
+  });
+
+  after(async() => {
+    fs.removeSync(dstPath);
+  });
+
+  it('save/restore/clean', async() => {
+    await exec('node.exe', [
+      script,
+      '--mode=save',
+      '--service=test',
+      `--dir=${dstPath}`,
+    ]);
+    const dstDataPath = path.join(dstPath, 'TestBack', 'test', 'test', 'srcData');
+    compareListings(srcPath, dstDataPath); 
+
+    await exec('node.exe', [
+      script,
+      '--mode=restore',
+      '--service=test',
+      `--dir=${dstPath}`,
+    ]);
+
+    await exec('node.exe', [
+      script,
+      '--mode=clean',
+      '--service=test',
+      `--dir=${dstPath}`,
+    ]);
+
+
+  });
+});
 
 run();
