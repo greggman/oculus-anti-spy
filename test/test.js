@@ -1,5 +1,6 @@
 const path = require('path');
 const fs = require('fs-extra');
+const tmp = require('tmp');
 
 const {describe, it, run, before, after, beforeEach, afterEach} = require('./runner.js');
 
@@ -12,7 +13,7 @@ const readDirTree = require('../src/readdirtree');
 const {safeStat, exec} = require('../src/utils');
 
 const testSrcDir = path.join(__dirname, 'src');
-const testDstDir = path.join(__dirname, 'dst');
+const testDstDir = tmp.dirSync().name;
 
 const origFiles = [
   { name: 'foo.txt', content: '1234567', },
@@ -269,7 +270,7 @@ describe('runs from command-line', () => {
 
   const script = path.join(__dirname, '..', 'index.js');
   const srcPath = path.join(__dirname, 'srcData');
-  const dstPath = path.join(__dirname);
+  const dstPath = testDstDir;
 
   before(async() => {
     fs.removeSync(dstPath);
