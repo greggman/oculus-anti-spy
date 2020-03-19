@@ -12,7 +12,7 @@ const diff = require('../src/diff');
 const readDirTree = require('../src/readdirtree');
 const {safeStat, exec} = require('../src/utils');
 
-const testSrcDir = path.join(__dirname, 'src');
+const testSrcDir = tmp.dirSync().name;
 const testDstDir = tmp.dirSync().name;
 
 const origFiles = [
@@ -266,6 +266,7 @@ describe('incremental', () => {
 });
 */
 
+/*
 describe('runs from command-line', () => {
 
   const script = path.join(__dirname, '..', 'index.js');
@@ -309,5 +310,6 @@ describe('runs from command-line', () => {
     assert.strictEqual(stat, undefined);
   });
 });
+*/
 
 run();
