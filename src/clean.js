@@ -10,6 +10,11 @@ async function clean(backupDir, folders, options, extraFolders) {
   if (!fs.existsSync(backupDir)) {
     throw new Error(`no save at: ${backupDir}.`);
   }
+
+  if (options.beforeClean) {
+    options.beforeClean();
+  }
+
   const rmdirSync = makeActionFunc(options.test, 'rmdir', fs.rmdirSync.bind(fs));
   const unlinkSync = makeActionFunc(options.test, 'delete', fs.unlinkSync.bind(fs));
   const removeSync = makeActionFunc(options.test, 'rm -rf', fs.removeSync.bind(fs));

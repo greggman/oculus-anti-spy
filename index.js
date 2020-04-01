@@ -40,6 +40,7 @@ const save = require('./src/save.js');
 const restore = require('./src/restore.js');
 const clean = require('./src/clean.js');
 const diff = require('./src/diff.js');
+const {safeStat, makeWritable} = require('./src/utils.js');
 
 const optionSpec = {
   options: [
@@ -117,7 +118,15 @@ function oculus() {
       ...origBack(process.env.ProgramFiles, 'Program Files', 'Oculus', 'CoreData', 'Software', 'StoreAssets'),
     },
   ];
-  return {backupDir, folders};
+
+  function beforeClean() {
+    const filename = path.join(backupDir, 'Favorites');
+    if (safeStat(filename)) {
+      makeWritable(filename);
+    }
+  }
+
+  return {backupDir, folders, beforeClean};
 }
 
 function steam() {
@@ -167,7 +176,8 @@ if (!fn) {
   process.exit(1);
 }
 
-const {backupDir, folders} = services[args.service]();
+const options = services[args.service]();
+const {backupDir, folders} = options;
 // the children of the root folders of the back up and the root itself
 const extraBackFolders = [backupDir, ..._.uniq(folders.map((folder) => {
   let {back} = folder;
@@ -189,7 +199,7 @@ folders.forEach((folder) => {
 
 async function main() {
   try {
-    await fn(backupDir, folders, args, extraBackFolders);
+    await fn(backupDir, folders, Object.assign({}, args, options), extraBackFolders);
     console.log(`== Finished ${args.mode} ==`);
     process.exit(0);
   } catch(e) {

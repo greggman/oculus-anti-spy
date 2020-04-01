@@ -62,9 +62,16 @@ function safeStat(filename) {
   }
 }
 
+function makeWritable(filename) {
+  const stat = fs.statSync(filename);
+  const newMode = stat.mode | 0o222;
+  fs.chmodSync(filename, newMode);
+}
+
 module.exports = {
   exec,
   makeActionFunc,
+  makeWritable,
   getTreeDiff,
   safeStat,
 };
