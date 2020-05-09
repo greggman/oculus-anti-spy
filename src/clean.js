@@ -10,6 +10,13 @@ async function clean(backupDir, folders, options, extraFolders) {
   if (!fs.existsSync(backupDir)) {
     throw new Error(`no save at: ${backupDir}.`);
   }
+  if (!options.force) {
+    const restored = path.join(backupDir, 'restored.txt');
+    if (!safeStat(restored)) {
+      throw new Error(`save not restored: ${backupDir}`);
+    }
+  }
+
 
   if (options.beforeClean) {
     options.beforeClean();

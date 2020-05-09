@@ -48,6 +48,11 @@ async function restore(backupDir, folders, options) {
       }
     });
   }
+
+  {
+    const restored = path.join(backupDir, 'restored.txt');
+    fs.writeFileSync(restored, 'restored');
+  }
 }
 
 module.exports = restore;
